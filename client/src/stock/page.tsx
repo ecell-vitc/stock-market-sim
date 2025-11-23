@@ -12,9 +12,9 @@ const Page = () => {
     useEffect(() => {
         fetch_stocks().then((data) => parse_entry(data))
             .then((data) => {
+                console.log(data)
                 setEntries(data.data)
                 setStocks(data.info)
-                console.log(data.info)
                 setCurr(Object.keys(data.info)[0])
             })
         
