@@ -6,7 +6,7 @@ router = APIRouter()
 import uuid
 from . import models, forms
 from user import models as user_models
-from .stock import StockProvider
+from .stock import StockProvider, execute_buy, execute_sell, exit_trade
 import middleware
 
 from data.db import get_session
@@ -25,26 +25,53 @@ def get_stocks(
     session: sql.Session = Depends(get_session),
     user: user_models.User = Depends(middleware.get_user)
 ):
-    stocks = session.exec(
+    rows = session.exec(
         sql.select(models.StockEntry, models.Stock)
-        .join(models.Stock)
-        .order_by(models.StockEntry.timestamp) # type: ignore
+           .join(models.Stock)
+           .order_by(models.StockEntry.timestamp)  # type: ignore
     )
-
     res: dict[str, dict] = {}
-    for (entry, stock) in stocks:
+    for entry, stock in rows:
         stock_id = entry.stock_id.hex
 
-        if stock_id not in res: 
-            res[stock_id] = { 
-                'name': stock.name, 'category': stock.category, 'entries': [],
-                'owned': session.exec(
-                    sql.select(sql.func.sum(user_models.Transaction.num_units))
-                    .where(
-                        user_models.Transaction.stock == stock.uid and 
-                        user_models.Transaction.user == user.uid
-                    )
-                ).one() or 0
+        if stock_id not in res:
+            owned = session.exec(
+                sql.select(sql.func.coalesce(sql.func.sum(user_models.Transaction.num_units), 0))
+                  .where(
+                      user_models.Transaction.stock == stock.uid,
+                      user_models.Transaction.user == user.uid
+                  )
+            ).one()
+
+            long_holding = session.exec(
+                sql.select(user_models.Holding).where(
+                    user_models.Holding.stock == stock.uid,
+                    user_models.Holding.user == user.uid,
+                    user_models.Holding.trade_type == "long"
+                )
+            ).first()
+
+            short_holding = session.exec(
+                sql.select(user_models.Holding).where(
+                    user_models.Holding.stock == stock.uid,
+                    user_models.Holding.user == user.uid,
+                    user_models.Holding.trade_type == "short"
+                )
+            ).first()
+
+            res[stock_id] = {
+                'name': stock.name,
+                'category': stock.category,
+                'entries': [],
+                'owned': owned or 0,
+                'long': {
+                    'units': long_holding.quantity if long_holding else 0,
+                    'entry_price': long_holding.entry_price if long_holding else 0.0
+                },
+                'short': {
+                    'units': short_holding.quantity if short_holding else 0,
+                    'entry_price': short_holding.entry_price if short_holding else 0.0
+                }
             }
 
         res[stock_id]['entries'].append(entry.to_dict())
@@ -83,63 +110,37 @@ def transact(
     except:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Stock ID not found")
     
-    value = models.StockEntry.from_json(stock.uid, Cache().get(stock.uid.hex)).close
-    owned_units = session.exec(
-        sql.select(sql.func.sum(user_models.Transaction.num_units))
-        .where(
-            user_models.Transaction.stock == stock.uid and 
-            user_models.Transaction.user == user.uid
-        )
-    ).one() or 0
     units = abs(data.units)
 
-    if data.units < 0:
-        
-        if owned_units < units:
-
-            if owned_units > 0:
-                user.balance += owned_units * 0.995 * value # sell regular units
-                user_models.Transaction(
-                    stock=stock.uid, user=user.uid,
-                    num_units=owned_units, price=owned_units * 0.995 * value
-                ).save(session)
-
-            
-            user_models.Transaction(
-                stock=stock.uid, user=user.uid,
-                num_units=owned_units - units, price=(units - owned_units) * 0.995 * value
-            ).save(session)
-
-            user.save(session)
-
+    try:
+        if data.units < 0:
+            return execute_sell(session, user, stock, units)
         else:
-            user.balance += units * 0.995 * value
-            user_models.Transaction(
-                stock=stock.uid, user=user.uid,
-                num_units=units, price=units * 0.995 * value
-            ).save(session)
-            user.save(session)
-
-
-    else:
-        if (user.balance < units * 1.005 * value): raise HTTPException(status.HTTP_412_PRECONDITION_FAILED, detail="Insufficient balance")
-
-        if owned_units < 0:
-            curr_value = value * 1.005 * units
-            stock_value = 0
-            # MKC ISKI
-            pass
+            return execute_buy(session, user, stock, units)
         
-        
-
-        user.balance -= units * 1.005 * value
-        user_models.Transaction(
-            stock=stock.uid, user=user.uid,
-            num_units=units, price=units * -1.005 * value
-        ).save(session)
-        user.save(session)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_412_PRECONDITION_FAILED, detail=str(e))
             
+
+
+
+# Exit route - Use this for direct exit of that stock position(s). i.e. delete entire stock holding
+
+@router.post('/stocks/{stock_id}/exit')
+def exit_position(
+    stock_id: str, data: forms.ExitForm, session: sql.Session = Depends(get_session),
+    user: user_models.User = Depends(middleware.get_user)
+):
+    try:
+        stock = session.exec(sql.select(models.Stock).where(models.Stock.uid == uuid.UUID(stock_id))).one()
+    except:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Stock ID not found")
     
+    try:
+        return exit_trade(session, user, stock, data.trade_type)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
+
 
 
 @router.post('/stocks')
