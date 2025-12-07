@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import {
-    AreaSeries, CandlestickSeries, createChart, CrosshairMode,
+    AreaSeries, LineSeries, CandlestickSeries, createChart, CrosshairMode,
     type AreaSeriesOptions, type CandlestickSeriesOptions, type ChartOptions,
     type DeepPartial, type IChartApi, type ISeriesApi, type UTCTimestamp
 } from "lightweight-charts"
@@ -11,15 +11,23 @@ type StockEntry = {
     high: number; low: number
 }
 
+import calculateSMA from "./indicators"; // Import the SMA calculation function
+
 const Graph = (props: { data: StockEntry[], curr: string }) => {
     const [is_fin, setFin] = useState(true)
     const graph_class = (cond: boolean) => "w-full h-[50vh] md:h-[calc(100vh-3rem)] " + (is_fin == cond ? "" : "hidden")
 
     const curr = useRef(props.curr)
 
+
+    //SMA Indicator Reference
+    const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+    const smaLineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null) // ✅ for Line chart
+
+
     const finChartRef = useRef<IChartApi | null>(null),
         lineChartRef = useRef<IChartApi | null>(null)
-    
+
     const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null),
         lineSeriesRef = useRef<ISeriesApi<"Area"> | null>(null)
 
@@ -27,19 +35,34 @@ const Graph = (props: { data: StockEntry[], curr: string }) => {
         if (!finChartRef.current) {
             const finChart = createChart(document.querySelector(`.graph div.fin`)! as HTMLElement, CHART_CONFIG)
             const candleSeries = finChart.addSeries(CandlestickSeries, CANDLESTICK_CONFIG)
+
+            // ✅✅✅ THIS IS YOUR SMA LINE ✅✅✅
+            const smaSeries = finChart.addSeries(LineSeries, {
+                color: "yellow",
+                lineWidth: 1,
+            })
+
             candleSeries.setData(props.data)
 
             finChartRef.current = finChart
             candleSeriesRef.current = candleSeries
+
+            smaSeriesRef.current = smaSeries   // ✅ STORE SMA
         }
 
         if (!lineChartRef.current) {
             const lineChart = createChart(document.querySelector(`.graph div.line`)! as HTMLElement, CHART_CONFIG)
             const lineSeries = lineChart.addSeries(AreaSeries, LINE_CONFIG)
+            const smaLineSeries = lineChart.addSeries(LineSeries, {
+                color: "yellow",
+                lineWidth: 1,
+            })
             lineSeries.setData(props.data.map((elem) => ({ time: elem.time, value: elem.close })))
 
             lineChartRef.current = lineChart
             lineSeriesRef.current = lineSeries
+
+            smaLineSeriesRef.current = smaLineSeries // ✅ STORE SMA for Line chart
         }
 
         return () => {
@@ -56,16 +79,37 @@ const Graph = (props: { data: StockEntry[], curr: string }) => {
     }, [])
 
     useEffect(() => {
-        if (props.curr != curr.current) {
-            candleSeriesRef.current?.setData(props.data)
-            lineSeriesRef.current?.setData(props.data.map((elem) => ({ time: elem.time, value: elem.close })))
-            curr.current = props.curr
-        } else {
-            const last = props.data[props.data.length-1]
-            if (candleSeriesRef.current) candleSeriesRef.current.update(last)
-            if (lineSeriesRef.current) lineSeriesRef.current.update({ time: last.time, value: last.close })
+        const smaData = calculateSMA(props.data, 14);
+
+        // ✅✅✅ ALWAYS SET FULL DATA FIRST ✅✅✅
+        candleSeriesRef.current?.setData(props.data)
+
+        lineSeriesRef.current?.setData(
+            props.data.map((elem) => ({
+                time: elem.time,
+                value: elem.close
+            }))
+        )
+
+        smaSeriesRef.current?.setData(smaData)   // ✅ ALWAYS DRAW SMA
+        smaLineSeriesRef.current?.setData(smaData)  // ✅ for Line chart
+        // ✅ Handle live update optimization
+        if (props.curr === curr.current) {
+            const last = props.data[props.data.length - 1]
+            candleSeriesRef.current?.update(last)
+            lineSeriesRef.current?.update({
+                time: last.time,
+                value: last.close
+            })
+            const latestSMA = smaData[smaData.length - 1]
+            if (latestSMA) {
+                smaSeriesRef.current?.update(latestSMA)
+                smaLineSeriesRef.current?.update(latestSMA) // ✅ for Line chart
+            }
         }
+        curr.current = props.curr
     }, [props.data, props.curr])
+
 
     return (
         <div className="graph relative">
@@ -79,10 +123,10 @@ const Graph = (props: { data: StockEntry[], curr: string }) => {
     )
 }
 
-const CHART_CONFIG: DeepPartial<ChartOptions> = { 
+const CHART_CONFIG: DeepPartial<ChartOptions> = {
     autoSize: true,
     layout: { textColor: 'white', background: { color: 'black' } },
-    grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } } ,
+    grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
     crosshair: { mode: CrosshairMode.Hidden },
     timeScale: { visible: false }
 }
