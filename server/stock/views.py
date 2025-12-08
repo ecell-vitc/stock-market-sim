@@ -6,7 +6,8 @@ router = APIRouter()
 import uuid
 from . import models, forms
 from user import models as user_models
-from .stock import StockProvider, execute_buy, execute_sell, exit_trade
+from .stock import StockProvider
+from .execute import execute_buy, execute_sell, exit_trade
 import middleware
 
 from data.db import get_session
@@ -99,7 +100,6 @@ async def connect_websocket(websocket: WebSocket):
         SocketPool.remove(websocket)
 
 
-
 @router.post('/stocks/{stock_id}')
 def transact(
     stock_id: str, data: forms.TransactForm, session: sql.Session = Depends(get_session),
@@ -120,8 +120,6 @@ def transact(
         
     except ValueError as e:
         raise HTTPException(status.HTTP_412_PRECONDITION_FAILED, detail=str(e))
-            
-
 
 
 # Exit route - Use this for direct exit of that stock position(s). i.e. delete entire stock holding
@@ -140,7 +138,6 @@ def exit_position(
         return exit_trade(session, user, stock, data.trade_type)
     except ValueError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
-
 
 
 @router.post('/stocks')
