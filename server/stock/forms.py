@@ -6,3 +6,6 @@ class AdminForm(BaseModel):
 
 class TransactForm(BaseModel):
     units: int
+
+class ExitForm(BaseModel):
+    trade_type: str
