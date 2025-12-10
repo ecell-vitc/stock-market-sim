@@ -6,3 +6,12 @@ class AdminForm(BaseModel):
 
 class TransactForm(BaseModel):
     units: int
+
+class ExitForm(BaseModel):
+    trade_type: str
+
+class StockEventForm(BaseModel):
+    username: str
+    password: str
+    to: float
+    duration: int

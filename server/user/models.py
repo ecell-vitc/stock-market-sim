@@ -21,8 +21,15 @@ class Transaction(BaseTimestampModel, table=True):
     user: uuid.UUID = sql.Field(foreign_key='user.uid', ondelete='CASCADE')
 
 
-
 class Holding(BaseModel, table=True):
     stock: uuid.UUID = sql.Field(foreign_key='stock.uid', ondelete='CASCADE')
     user: uuid.UUID = sql.Field(foreign_key='user.uid', ondelete='CASCADE')
-    amount: float
+    quantity: int
+    entry_price: float
+    trade_type: str  # "long" or "short"
+    
+    def calculate_pnl(self, current_price: float) -> float:
+        if self.trade_type == "long":
+            return (current_price - self.entry_price) * self.quantity
+        else:
+            return (self.entry_price - current_price) * self.quantity
