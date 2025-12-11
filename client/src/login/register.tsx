@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
-  const [formData, setFormData] = useState({ username: '', password: '', confirm: '', regno: '' });
-  const [errors, setErrors] = useState<{ username?: string; password?: string; confirm?: string; regno?: string }>({});
+  const [formData, setFormData] = useState({ username: '', password: '', confirm: '' });
+  const [errors, setErrors] = useState<{ username?: string; password?: string; confirm?: string }>({});
   const [message, setMessage] = useState({ type: '', text: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
 
   const validateForm = () => {
@@ -13,7 +15,7 @@ function Register() {
     if (!formData.password.trim()) newErrors.password = 'Password is required';
     if (!formData.confirm.trim()) newErrors.confirm = 'Please confirm your password';
     if (formData.password !== formData.confirm) newErrors.confirm = 'Passwords do not match';
-    if (!formData.regno.trim()) newErrors.regno = 'Registration number is required';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -27,9 +29,40 @@ function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     setIsLoading(true);
-    setMessage({ type: '', text: '' }); }
+    setMessage({ type: '', text: '' });
+
+    const payload = {
+      username: formData.username,
+      password: formData.password
+    };
+
+      const response = await fetch('http://localhost:8000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+     if (response.ok) {
+        const data = await response.json();
+        setMessage({ type: 'success', text: data.message || 'Registration successful!' });
+        setFormData({ username: '', password: '', confirm: ''});
+        setTimeout(() => navigate("/login"), 600);
+      } else {
+        let errorText = 'Registration failed.';
+        try {
+          const errorData = await response.json();
+          console.log('Error response:', errorData); // <-- Add this line
+          errorText = errorData.detail || errorText;
+        } catch (e) {
+          console.log('JSON parse error:', e);
+        }
+        setMessage({ type: 'error', text: errorText });
+      }
+    setIsLoading(false);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -60,22 +93,6 @@ function Register() {
                 }`}
               />
               {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="regno" className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
-              <input
-                type="text"
-                id="regno"
-                name="regno"
-                value={formData.regno}
-                onChange={handleChange}
-                disabled={isLoading}
-                className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
-                  errors.regno ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.regno && <p className="mt-1 text-sm text-red-600">{errors.regno}</p>}
             </div>
       
             <div>
