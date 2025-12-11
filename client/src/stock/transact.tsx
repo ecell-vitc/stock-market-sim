@@ -57,10 +57,13 @@ const Transact = (props: TransactProps) => {
     }
   }
 
-  const buy = () => request(`/stocks/${props.stockId}`, { units })
-  const sell = () => request(`/stocks/${props.stockId}`, { units: -units })
-  const exitLong = () => request(`/stocks/${props.stockId}/exit`, { trade_type: 'long' })
-  const exitShort = () => request(`/stocks/${props.stockId}/exit`, { trade_type: 'short' })
+
+  const maxShortUnits = Math.floor(props.balance / (props.price * 0.995))
+  const maxSellable = long.units + maxShortUnits
+const buy = () => request(`/stocks/${props.stockId}`, { units: units })
+const sell = () => request(`/stocks/${props.stockId}`, { units: -units })
+const exitLong = () => request(`/stocks/${props.stockId}`, { units: -long.units })
+const exitShort = () => request(`/stocks/${props.stockId}`, { units: short.units })
 
   return (
     <div className="p-4">
@@ -92,7 +95,7 @@ const Transact = (props: TransactProps) => {
         </button>
         <button
           onClick={sell}
-          disabled={loading}
+          disabled={loading || units <= 0 || units > maxSellable}
           className="p-2 bg-red-600 text-white flex-1 disabled:opacity-50"
         >
           Sell (₹{sellProceeds.toFixed(2)})

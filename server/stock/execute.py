@@ -45,6 +45,13 @@ def execute_sell(
         
         short_units = units - long_qty
         
+        short_required = short_units * price_adjusted
+
+        if user.balance < short_required:
+            raise ValueError("Insufficient balance to open short position")
+        
+        user.balance -= short_required
+
         # Get or create short holding
         short_holding = session.exec(
             sql.select(Holding).where(
@@ -60,6 +67,7 @@ def execute_sell(
             avg_price = ((short_holding.entry_price * short_holding.quantity) + (current_price * short_units)) / total_qty
             short_holding.quantity = total_qty
             short_holding.entry_price = avg_price
+            short_holding.short_balance += short_required
             session.add(short_holding)
         else:
             short_holding = Holding(
@@ -67,7 +75,8 @@ def execute_sell(
                 stock=stock.uid,
                 quantity=short_units,
                 entry_price=current_price,
-                trade_type="short"
+                trade_type="short",
+                short_balance=short_required
             )
             session.add(short_holding)
     
@@ -110,9 +119,11 @@ def execute_buy(
     if units <= short_qty:
         # Just cover short position
         pnl = (short_holding.entry_price - current_price) * units
-        user.balance += pnl  # Add profit/loss
+        balance_to_release = (units / short_qty) * short_holding.short_balance
+        short_holding.short_balance -= balance_to_release
+        user.balance += balance_to_release + pnl
         short_holding.quantity -= units
-        
+
         if short_holding.quantity == 0:
             session.delete(short_holding)
         else:
@@ -121,7 +132,7 @@ def execute_buy(
         # Cover all short, then open long for excess
         if short_holding and short_holding.quantity > 0:
             pnl = (short_holding.entry_price - current_price) * short_holding.quantity
-            user.balance += pnl
+            user.balance += short_holding.short_balance + pnl
             session.delete(short_holding)
         
         long_units = units - short_qty
@@ -194,14 +205,16 @@ def exit_trade(
     
     if trade_type == "long":
         user.balance += units * current_price * 0.995
+        transacted_units = -units
     else:
-        user.balance += pnl
+        user.balance += holding.short_balance + pnl
+        transacted_units = units
     
     # Record transaction
     Transaction(
         stock=stock.uid, user=user.uid,
-        num_units=-units if trade_type == "long" else units,
-        price=units * current_price
+        num_units=transacted_units,
+        price=abs(transacted_units) * current_price
     ).save(session)
     
     session.delete(holding)

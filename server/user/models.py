@@ -27,6 +27,7 @@ class Holding(BaseModel, table=True):
     quantity: int
     entry_price: float
     trade_type: str  # "long" or "short"
+    short_balance: float = 0.0
     
     def calculate_pnl(self, current_price: float) -> float:
         if self.trade_type == "long":

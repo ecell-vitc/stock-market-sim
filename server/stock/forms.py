@@ -9,3 +9,8 @@ class TransactForm(BaseModel):
 
 class ExitForm(BaseModel):
     trade_type: str
+
+class StockEventForm(BaseModel):
+    username: str
+    password: str
+    events: list[dict]
