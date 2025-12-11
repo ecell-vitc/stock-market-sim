@@ -1,6 +1,5 @@
 import asyncio, random, threading, time
 import sqlmodel as sql
-from sqlmodel import func
 from stock.models import Stock, StockEntry
 from user.models import Transaction, User, Holding
 
@@ -107,7 +106,6 @@ class StockProvider(threading.Thread):
                 user.balance = 0.0
                 user.save(session)
                 session.commit()
-
 
     def broadcast_updates(
         self,  stocks: list[Stock],

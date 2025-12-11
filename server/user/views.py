@@ -1,7 +1,7 @@
 import os, jwt
 import sqlmodel as sql
 from fastapi import APIRouter, HTTPException, status, Depends
-
+from sqlalchemy.exc import NoResultFound
 from . import models
 import middleware
 
@@ -30,3 +30,19 @@ def login(data: forms.LoginForm, session: sql.Session = Depends(get_session)):
 @router.get('/user/info')
 def get_user_info(user: models.User = Depends(middleware.get_user)):
     return {"username": user.username, "balance": user.balance}
+
+
+# Register new user
+@router.post('/register')
+def register(data: forms.RegisterForm, session: sql.Session = Depends(get_session)):
+    try:
+        res = session.exec(sql.select(models.User).where(models.User.username == data.username))
+        res.one()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Username already taken!")
+    except NoResultFound:
+        pass # u can take this username
+    
+    user = models.User(username=data.username, password=data.password, balance=10000)
+    session.add(user)
+    session.commit()
+    return {"message": "User registered successfully! Login to continue."}
