@@ -6,8 +6,9 @@ class User(BaseModel, table=True):
     username: str = sql.Field(unique=True)
     password: str
     balance: float
+    verified: bool = False
 
-    def __init__(self, username: str, password: str, balance: float):
+    def __init__(self, username: str, password: str, balance: float = 100000):
         hashed_pass = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
         super().__init__(username=username, password=hashed_pass, balance=balance) # type: ignore
 
@@ -25,11 +26,4 @@ class Holding(BaseModel, table=True):
     stock: uuid.UUID = sql.Field(foreign_key='stock.uid', ondelete='CASCADE')
     user: uuid.UUID = sql.Field(foreign_key='user.uid', ondelete='CASCADE')
     quantity: int
-    entry_price: float
-    trade_type: str  # "long" or "short"
-    
-    def calculate_pnl(self, current_price: float) -> float:
-        if self.trade_type == "long":
-            return (current_price - self.entry_price) * self.quantity
-        else:
-            return (self.entry_price - current_price) * self.quantity
+    short_balance: float

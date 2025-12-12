@@ -18,4 +18,13 @@ def get_user(
 
     except (NoResultFound, jwt.InvalidTokenError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Credential validation failed")
-    
+
+
+def check_admin(token: Annotated[str, Depends(OAuth2PasswordBearer("/"))]):
+    try:
+        data = jwt.decode(token, os.environ['SECRET'], algorithms=['HS256'])
+        if data['username'] != os.environ['ADMIN_USERNAME'] or data['password'] != os.environ['ADMIN_PASSWORD']:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Admin access required")
+
+    except (NoResultFound, jwt.InvalidTokenError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Credential validation failed")
