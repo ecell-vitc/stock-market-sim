@@ -6,7 +6,7 @@ import uuid
 from . import models, forms
 from user import models as user_models
 from .stock import StockProvider, Event
-from . import logic
+from . import logic, patterns
 import middleware
 
 from data.db import get_session
@@ -113,7 +113,7 @@ def stop_stock(_: None = Depends(middleware.check_admin)):
 
 
 @router.post('/events')
-def trigger_pattern(data: forms.StockEventForm, _: None = Depends(middleware.check_admin)):
+def trigger_event(data: forms.StockEventForm, _: None = Depends(middleware.check_admin)):
     if not PROVIDER.started.is_set(): raise HTTPException(status.HTTP_428_PRECONDITION_REQUIRED, detail="Stock provider is not running!")
 
     for event in data.events:
@@ -129,3 +129,40 @@ def trigger_pattern(data: forms.StockEventForm, _: None = Depends(middleware.che
         ])
 
     return "Events added successfully!"
+
+@router.post('/patterns')
+def trigger_pattern(data: forms.StockEventForm, _: None = Depends(middleware.check_admin)):
+    if not PROVIDER.started.is_set(): raise HTTPException(status.HTTP_428_PRECONDITION_REQUIRED, detail="Stock provider is not running!")
+
+    functions = {
+        'bullish_flag': patterns.BULLISH_FLAG,
+        'bearish_flag': patterns.BEARISH_FLAG,
+        'bullish_pennant': patterns.BULLISH_PENNANT,
+        'bearish_pennant': patterns.BEARISH_PENNANT,
+        'double_top': patterns.DOUBLE_TOP,
+        'double_bottom': patterns.DOUBLE_BOTTOM,
+        'triple_top': patterns.TRIPLE_TOP,
+        'triple_bottom': patterns.TRIPLE_BOTTOM,
+        'head_and_shoulders': patterns.HEAD_AND_SHOULDERS,
+        'inverse_head_and_shoulders': patterns.INVERSE_HEAD_AND_SHOULDERS,
+        'rising_wedge': patterns.RISING_WEDGE,
+        'falling_wedge': patterns.FALLING_WEDGE,
+        'triangle': patterns.TRIANGLE,
+        'rectangle': patterns.RECTANGLE,
+        'cup_and_handle': patterns.CUP_AND_HANDLE,
+        'inverted_cup_and_handle': patterns.INVERTED_CUP_AND_HANDLE,
+    }
+
+    cache = Cache()
+    for event in data.events:
+        value = models.StockEntry.from_json(
+            uuid.UUID(event['id']), 
+            cache.get(event['id'])
+        ).close
+
+        PROVIDER.add_pattern(
+            event['id'], 
+            functions[event['pattern']](value)
+        )
+
+    return "Patterns added successfully!"
