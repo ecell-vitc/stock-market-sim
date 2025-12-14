@@ -1,7 +1,7 @@
 @import "tailwindcss";
 html, body { 
     padding: 0; margin: 0; 
-    background: rgb(6,7,255);
+    background: black;
     color: white;
     overflow-x: hidden;
 }
@@ -26,8 +26,6 @@ nav {
     height: 3rem;
     z-index: 999;
 }
-
-main { margin-top: 3rem; }
 
 button {
     cursor: pointer;
