@@ -1,6 +1,11 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
 html, body { 
-    padding: 0; margin: 0; 
+    padding: 0;
+    margin: 0;
     background: black;
     color: white;
     overflow-x: hidden;
@@ -45,3 +50,4 @@ button:disabled {
     cursor: default;
     pointer-events: none;
 }
+
