@@ -1,56 +1,63 @@
-import { useState, useEffect, useRef } from "react"
-import type { Stock as StockType, StockEntry } from "../../types"
-import { parse_entry } from "./logic"
-import { makeRequest, SERVER_HOST } from "../../lib/utils"
-import Stock from "./stock"
+import { useState, useEffect, useRef } from "react";
+import type { Stock as StockType, StockEntry } from "../../types";
+import { parse_entry } from "./logic";
+import { makeRequest, SERVER_HOST } from "../../lib/utils";
+import Stock from "./stock";
 
 const Page = () => {
-  const [stocks, setStocks] = useState<Record<string, StockType>>()
-  const [entries, setEntries] = useState<Record<string, StockEntry[]>>()
-  const [curr, setCurr] = useState("")
+  const [stocks, setStocks] = useState<Record<string, StockType> | null>(null);
+  const [entries, setEntries] = useState<Record<string, StockEntry[]> | null>(null);
+  const [curr, setCurr] = useState<string>("");
 
-  const mounted = useRef(true)
+  const mounted = useRef(true);
 
   useEffect(() => {
-    makeRequest('stocks', 'GET')
+    makeRequest("stocks", "GET")
       .then(parse_entry)
       .then((data) => {
-        setEntries(data.data)
-        setStocks(data.info)
-        setCurr(Object.keys(data.info)[0])
-      })
+        setStocks(data.info);
+        setEntries(data.data);
+        setCurr(Object.keys(data.info)[0]);
+      });
 
-    const socket = new WebSocket(`wss://${SERVER_HOST}/stocks/`)
-    socket.onmessage = (ev: MessageEvent) => setEntries(prev => {
-      const update: Record<string, StockEntry> = JSON.parse(ev.data)
-      const res = JSON.parse(JSON.stringify(prev))
-      Object.keys(update).forEach((stock_id) => {
-        const last_idx = res[stock_id].length - 1
-        if (res[stock_id][last_idx].time === update[stock_id].time)
-          res[stock_id][last_idx] = update[stock_id]
-        else
-          res[stock_id].push(update[stock_id])
-      })
-      return res
-    })
-    socket.onclose = () => { if (mounted.current && socket.readyState === WebSocket.CLOSED) alert("Connection interrupted! Please refresh!") }
+    const socket = new WebSocket(`wss://${SERVER_HOST}/stocks/`);
+
+    socket.onmessage = (ev) => {
+      const update: Record<string, StockEntry> = JSON.parse(ev.data);
+
+      setEntries((prev) => {
+        if (!prev) return prev;
+        const res = structuredClone(prev);
+
+        Object.keys(update).forEach((id) => {
+          const last = res[id].length - 1;
+          if (res[id][last].time === update[id].time)
+            res[id][last] = update[id];
+          else res[id].push(update[id]);
+        });
+
+        return res;
+      });
+    };
 
     return () => {
-      mounted.current = false
-      if (socket.readyState === WebSocket.OPEN) socket.close()
-    }
-  }, [])
+      mounted.current = false;
+      socket.close();
+    };
+  }, []);
+
+  if (!stocks || !entries) return null;
 
   return (
-    stocks == undefined || entries == undefined ? <></> :
-    <Stock stocks={stocks} entries={entries} curr={curr}>
-      <select className='my-3' onChange={(ev) => setCurr(ev.currentTarget.value)}>
-        {Object.keys(stocks).map((key, idx) =>
-          <option key={idx} value={key}>{stocks[key].name}</option>
-        )}
-      </select>
-    </Stock>
-  )
-}
+    <div className="min-h-screen bg-gradient-to-br from-[#050b2e] via-[#070f3b] to-[#030824] text-white">
+      <Stock
+        stocks={stocks}
+        entries={entries}
+        curr={curr}
+        setCurr={setCurr}
+      />
+    </div>
+  );
+};
 
-export default Page
+export default Page;

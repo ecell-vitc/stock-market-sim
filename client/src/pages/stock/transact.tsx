@@ -1,109 +1,158 @@
-import { useState } from "react"
-import { makeRequest, showMessage } from "../../lib/utils"
-import { useUserStore } from "../../lib/store"
+import { useState } from "react";
+import { makeRequest, showMessage } from "../../lib/utils";
+import { useUserStore } from "../../lib/store";
 
+type Props = {
+  stockId: string;
+  stockName: string;
+  price: number;
+};
 
-type TransactProps = {
-	stockId: string
-	price: number
-}
+const Transact = ({ stockId, stockName, price }: Props) => {
+  const userStore = useUserStore((state) => state);
 
-const Transact = (props: TransactProps) => {
-	const userStore = useUserStore((state) => state)
-	
-	const [units, setUnits] = useState(1)
-	const [loading, setLoading] = useState(false)
-	
-	const getBuyPrice = (n: number) => n * props.price * Math.pow(1.002, n)
-	const getSellPrice = (n: number) => n * props.price * Math.pow(0.998, n)
-	
-	const buyPrice = getBuyPrice(units)
-	const sellPrice = getSellPrice(units)
-	const owned = userStore.stocks[props.stockId] || 0
+  const [units, setUnits] = useState(1);
+  const [isBuy, setIsBuy] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-	const transact = async (sell?: boolean) => {
-		
-		if (units < 1 || isNaN(units)) {
-			showMessage("Enter a valid number of units", true)
-			return;
-		}
-		
-		if (units > 100) {
-			showMessage("Cannot transact more than 100 units at once", true)
-			return;
-		}
+  const owned = userStore.stocks[stockId] || 0;
 
-		setLoading(true)
+  /* === PRICING LOGIC === */
+  const getBuyPrice = (n: number) =>
+    n * price * Math.pow(1.002, n);
 
-		try {
-			const res = await makeRequest(
-				`stocks/transact/${props.stockId}`, 'POST',
-				{ "units": units * (sell ? -1 : 1) }, true
-			)
-			console.log(res)
-			if (res["detail"]) showMessage(res["detail"]["message"], true)
-			else {
-				showMessage(res["message"])
-				userStore.update(
-					res["balance"],
-					{
-						...userStore.stocks,
-						[props.stockId]: (userStore.stocks[props.stockId] || 0) + (sell ? -units : units)
-					}
-				)
-			}
-			
-		} catch {
-			showMessage("Transaction failed", true)
-		} finally {
-			setLoading(false)
-		}
-	}
+  const getSellPrice = (n: number) =>
+    n * price * Math.pow(0.998, n);
 
+  const buyPrice = getBuyPrice(units);
+  const sellPrice = getSellPrice(units);
 
+  const transact = async () => {
+    if (units < 1 || isNaN(units)) {
+      showMessage("Enter a valid number of units", true);
+      return;
+    }
 
-	return (
-		<div className="p-4">
-			<div className="mb-3 text-sm">
-				<div>Balance: ₹{userStore.balance.toFixed(2)}</div>
-				<div>Owned: {owned}</div>
-			</div>
+    if (units > 100) {
+      showMessage("Cannot transact more than 100 units at once", true);
+      return;
+    }
 
-			<input
-				type="number"
-				min={1} max={100}
-				onChange={(ev) => {
-					const n = ev.target.valueAsNumber
-					setUnits(isNaN(n) ? 0 : n)
-				}}
-				disabled={loading}
-				className="border p-2 w-full mb-3"
-			/>
+    setLoading(true);
+    try {
+      const res = await makeRequest(
+        `stocks/transact/${stockId}`,
+        "POST",
+        { units: units * (isBuy ? 1 : -1) },
+        true
+      );
 
-			<div className="flex gap-2 mb-3">
-				<button
-					onClick={() => transact(false)}
-					disabled={
-						loading || units > 100 || units < 1 || 
-						(owned < 0 ? getBuyPrice(units + owned) : buyPrice) > userStore.balance
-					}
-					className="p-2 bg-green-600 text-white flex-1 disabled:opacity-50"
-				>
-					Buy ₹{buyPrice.toFixed(2)}
-				</button>
-				<button
-					onClick={() => transact(true)}
-					disabled={
-						loading || units > 100 || units < 1 ||
-						(units > owned ? getSellPrice(units - owned) : 0) > userStore.balance
-					}
-					className="p-2 bg-red-600 text-white flex-1 disabled:opacity-50"
-				>
-					Sell ₹{sellPrice.toFixed(2)}
-				</button>
-			</div>
-		</div>
-	)
-}
+      if (res?.detail) {
+        showMessage(res.detail.message, true);
+      } else {
+        showMessage(res.message);
+        userStore.update(res.balance, {
+          ...userStore.stocks,
+          [stockId]:
+            (userStore.stocks[stockId] || 0) +
+            (isBuy ? units : -units),
+        });
+      }
+    } catch {
+      showMessage("Transaction failed", true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-export default Transact
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-2">
+        Trade {stockName}
+      </h3>
+
+      <div className="text-sm text-gray-300 mb-4">
+        <div>Balance: ₹{userStore.balance.toFixed(2)}</div>
+        <div>Owned: {owned}</div>
+      </div>
+
+      {/* BUY / SELL TOGGLE */}
+      <div className="flex mb-4 rounded-lg bg-[#0b123a] border border-[#1e2a6b] overflow-hidden">
+        <button
+          onClick={() => setIsBuy(true)}
+          className={`flex-1 py-2 text-sm font-semibold ${
+            isBuy
+              ? "bg-green-400 text-black"
+              : "text-gray-300 hover:bg-[#1a215a]"
+          }`}
+        >
+          Buy
+        </button>
+        <button
+          onClick={() => setIsBuy(false)}
+          className={`flex-1 py-2 text-sm font-semibold ${
+            !isBuy
+              ? "bg-red-500 text-white"
+              : "text-gray-300 hover:bg-[#1a215a]"
+          }`}
+        >
+          Sell
+        </button>
+      </div>
+
+      {/* QUANTITY */}
+      <input
+        type="number"
+        min={1}
+        max={100}
+        value={units}
+        onChange={(e) => {
+          const n = e.target.valueAsNumber;
+          setUnits(isNaN(n) ? 0 : n);
+        }}
+        disabled={loading}
+        className="w-full bg-[#070d2d] border border-[#1e2a6b] rounded-lg px-3 py-2 mb-4"
+      />
+
+      {/* PRICE SUMMARY */}
+      <div className="bg-[#1a1f4d] rounded-lg p-3 mb-4 text-sm">
+        <div className="flex justify-between">
+          <span>Price per share</span>
+          <span>₹{price.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Quantity</span>
+          <span>{units}</span>
+        </div>
+        <div className="flex justify-between font-semibold mt-1">
+          <span>Total</span>
+          <span>
+            ₹{(isBuy ? buyPrice : sellPrice).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      <button
+        onClick={transact}
+        disabled={
+          loading ||
+          units < 1 ||
+          units > 100 ||
+          (isBuy
+            ? buyPrice > userStore.balance
+            : units > owned)
+        }
+        className={`w-full py-3 rounded-lg font-semibold transition ${
+          isBuy
+            ? "bg-green-400 text-black hover:bg-green-300"
+            : "bg-red-500 text-white hover:bg-red-400"
+        } disabled:opacity-50`}
+      >
+        {isBuy ? "Buy" : "Sell"} ₹
+        {(isBuy ? buyPrice : sellPrice).toFixed(2)}
+      </button>
+    </div>
+  );
+};
+
+export default Transact;

@@ -1,12 +1,17 @@
 // @ts-nocheck
-
 import { useState, useEffect, useRef } from "react";
 import {
-  AreaSeries, LineSeries, CandlestickSeries,
+  AreaSeries,
+  LineSeries,
+  CandlestickSeries,
   createChart,
-  type UTCTimestamp, type AreaSeriesOptions,
-  type CandlestickSeriesOptions, type ChartOptions,
-  type DeepPartial, type IChartApi, type ISeriesApi,
+  type UTCTimestamp,
+  type AreaSeriesOptions,
+  type CandlestickSeriesOptions,
+  type ChartOptions,
+  type DeepPartial,
+  type IChartApi,
+  type ISeriesApi,
 } from "lightweight-charts";
 
 import IndicatorsDropdown from "./IndicatorsDropDown";
@@ -39,6 +44,7 @@ const INDICATOR_STYLE = {
 const Graph = ({ data, indicatorData }: GraphProps) => {
   const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
   const [subPanelData, setSubPanelData] = useState<any[]>([]);
+  const [showCandle, setShowCandle] = useState(true);
 
   const finChartRef = useRef<IChartApi | null>(null);
   const lineChartRef = useRef<IChartApi | null>(null);
@@ -47,36 +53,39 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
   const candleOverlayRef = useRef<ISeriesApi<"Line"> | null>(null);
   const lineOverlayRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  const [showCandle, setShowCandle] = useState(true);
-
-  // Sync indicator set externally
   useEffect(() => {
     if (indicatorData) setSelectedIndicator(indicatorData.name);
   }, [indicatorData]);
 
-  // MAIN CHART INIT
   useEffect(() => {
-    if (data.length === 0) return;
+    if (!data.length) return;
 
-    // CANDLE chart
     if (!finChartRef.current) {
-      const fin = createChart(document.getElementById("candle-chart")!, CHART_MAIN);
-      candleSeriesRef.current = fin.addSeries(CandlestickSeries, CANDLE_STYLE);
+      const fin = createChart(
+        document.getElementById("candle-chart")!,
+        CHART_MAIN
+      );
+      candleSeriesRef.current = fin.addSeries(
+        CandlestickSeries,
+        CANDLE_STYLE
+      );
       finChartRef.current = fin;
     }
     candleSeriesRef.current?.setData(data);
 
-    // LINE chart
     if (!lineChartRef.current) {
-      const line = createChart(document.getElementById("line-chart")!, CHART_MAIN);
+      const line = createChart(
+        document.getElementById("line-chart")!,
+        CHART_MAIN
+      );
       priceLineRef.current = line.addSeries(AreaSeries, PRICE_STYLE);
       lineChartRef.current = line;
     }
-    priceLineRef.current?.setData(data.map(d => ({ time: d.time, value: d.close })));
-
+    priceLineRef.current?.setData(
+      data.map((d) => ({ time: d.time, value: d.close }))
+    );
   }, [data]);
 
-  // INDICATOR LOGIC
   useEffect(() => {
     if (!selectedIndicator || !data.length) {
       setSubPanelData([]);
@@ -85,87 +94,83 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
       return;
     }
 
-    const close = data.map(v => v.close);
-    const open = data.map(v => v.open);
-    const high = data.map(v => v.high);
-    const low = data.map(v => v.low);
-    const volume = data.map(v => v.volume || 1000);
-    const t = data.map(v => v.time);
+    const close = data.map((v) => v.close);
+    const open = data.map((v) => v.open);
+    const high = data.map((v) => v.high);
+    const low = data.map((v) => v.low);
+    const volume = data.map((v) => v.volume || 1000);
+    const t = data.map((v) => v.time);
 
     const out = computeIndicator(selectedIndicator, {
-      open, high, low, close, volume,
+      open,
+      high,
+      low,
+      close,
+      volume,
     });
 
     const formatted = out
       .map((v, i) =>
         isNaN(v) || !isFinite(v) ? null : { time: t[i], value: v }
       )
-      .filter((x): x is { time: UTCTimestamp; value: number } => x !== null);
+      .filter(Boolean);
 
-    const isOnChart = ON_CHART_INDICATORS.includes(selectedIndicator);
-    const isBelowChart = BELOW_CHART_INDICATORS.includes(selectedIndicator);
-
-    // ON-CHART INDICATOR
-    if (isOnChart) {
-      candleOverlayRef.current ??= finChartRef.current?.addSeries(LineSeries, INDICATOR_STYLE);
-      lineOverlayRef.current ??= lineChartRef.current?.addSeries(LineSeries, INDICATOR_STYLE);
+    if (ON_CHART_INDICATORS.includes(selectedIndicator)) {
+      candleOverlayRef.current ??=
+        finChartRef.current?.addSeries(LineSeries, INDICATOR_STYLE);
+      lineOverlayRef.current ??=
+        lineChartRef.current?.addSeries(LineSeries, INDICATOR_STYLE);
 
       candleOverlayRef.current?.setData(formatted);
       lineOverlayRef.current?.setData(formatted);
-
       setSubPanelData([]);
     }
 
-    // BELOW-CHART INDICATOR
-    if (isBelowChart) {
+    if (BELOW_CHART_INDICATORS.includes(selectedIndicator)) {
       setSubPanelData(formatted);
-
       candleOverlayRef.current?.setData([]);
       lineOverlayRef.current?.setData([]);
     }
-
   }, [selectedIndicator, data]);
 
   return (
-    <div className="relative text-white w-full">
-      {/* TOP UI BAR */}
-      <div className="absolute top-3 left-4 z-50 flex gap-4 bg-[#0f0f0f]/80 px-4 py-2 rounded-xl border border-gray-700 backdrop-blur-md shadow-lg">
-        <div className="flex bg-[#1a1a1a] rounded-md overflow-hidden border border-gray-600">
+    <div className="relative">
+      {/* TOP CONTROLS */}
+      <div className="absolute top-4 left-4 z-50 flex gap-3 items-center bg-[#0b123a]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[#1e2a6b]">
+        <div className="flex overflow-hidden rounded-lg border border-[#1e2a6b]">
           <button
             onClick={() => setShowCandle(true)}
-            className={`px-3 py-1 ${showCandle ? "bg-blue-600" : ""}`}
+            className={`px-4 py-1 text-sm ${
+              showCandle ? "bg-green-400 text-black" : "text-gray-300"
+            }`}
           >
-            Candle
+            Candlestick
           </button>
           <button
             onClick={() => setShowCandle(false)}
-            className={`px-3 py-1 ${!showCandle ? "bg-blue-600" : ""}`}
+            className={`px-4 py-1 text-sm ${
+              !showCandle ? "bg-green-400 text-black" : "text-gray-300"
+            }`}
           >
             Line
           </button>
         </div>
 
-        <IndicatorsDropdown onSelect={x => setSelectedIndicator(x)} />
+        <IndicatorsDropdown onSelect={setSelectedIndicator} />
       </div>
 
-      {/* MAIN CHART — AUTO RESIZE */}
       <div
         id="candle-chart"
-        className={`w-full ${showCandle ? "" : "hidden"}`}
-        style={{
-          height: subPanelData.length > 0 ? "60vh" : "80vh",
-        }}
+        className={showCandle ? "block" : "hidden"}
+        style={{ height: subPanelData.length ? "60vh" : "75vh" }}
       />
 
       <div
         id="line-chart"
-        className={`w-full ${!showCandle ? "" : "hidden"}`}
-        style={{
-          height: subPanelData.length > 0 ? "60vh" : "80vh",
-        }}
+        className={!showCandle ? "block" : "hidden"}
+        style={{ height: subPanelData.length ? "60vh" : "75vh" }}
       />
 
-      {/* BELOW-CHART PANEL */}
       {subPanelData.length > 0 && (
         <SubIndicatorPanel data={subPanelData} height={200} />
       )}
@@ -173,30 +178,31 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
   );
 };
 
-// CHART STYLES
 const CHART_MAIN: DeepPartial<ChartOptions> = {
   autoSize: true,
-  layout: { background: { color: "#000" }, textColor: "#e0e0e0" },
-  grid: { vertLines: { color: "#222" }, horzLines: { color: "#222" } },
+  layout: { background: { color: "#070d2d" }, textColor: "#e5e7eb" },
+  grid: {
+    vertLines: { color: "#1e2a6b" },
+    horzLines: { color: "#1e2a6b" },
+  },
 };
 
 const CANDLE_STYLE: DeepPartial<CandlestickSeriesOptions> = {
-  upColor: "#26a69a",
-  downColor: "#ef5350",
+  upColor: "#22c55e",
+  downColor: "#ef4444",
+  wickUpColor: "#22c55e",
+  wickDownColor: "#ef4444",
   borderVisible: false,
-  wickUpColor: "#26a69a",
-  wickDownColor: "#ef5350",
-  lastValueVisible: false,
-  priceLineVisible: false,
 };
 
 const PRICE_STYLE: DeepPartial<AreaSeriesOptions> = {
-  lineColor: "#4F9BFF",
-  topColor: "#4F9BFF88",
-  bottomColor: "#4F9BFF11",
+  lineColor: "#22c55e", 
+  topColor: "transparent", 
+  bottomColor: "transparent", 
   lineWidth: 2,
   lastValueVisible: false,
   priceLineVisible: false,
 };
+
 
 export default Graph;
