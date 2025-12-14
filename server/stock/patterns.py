@@ -93,7 +93,7 @@ def DOUBLE_TOP(value : float) -> List[Event]:
     events.append(Event(random.randrange(10,12), top2, neckline2))
 
     target = neckline2 * (1 - random.uniform(0.06, 0.08))
-    events.append(Event(random.randrange(10,12), neckline, target))
+    events.append(Event(random.randrange(10,12), neckline2, target))
     return events
 
 def DOUBLE_BOTTOM(value : float) -> List[Event]:
@@ -109,7 +109,7 @@ def DOUBLE_BOTTOM(value : float) -> List[Event]:
     events.append(Event(random.randrange(10,12), bottom2, neckline2))
 
     target = neckline2 * (1 + random.uniform(0.06, 0.08))
-    events.append(Event(random.randrange(10,12), neckline, target))
+    events.append(Event(random.randrange(10,12), neckline2, target))
 
     return events
 
@@ -185,17 +185,17 @@ def FALLING_WEDGE(value: float) -> List[Event]:
 
     for r in rel_targets:
         target = pole_top * r
-        events.append(Event(3, last, target))
+        events.append(Event(Event(random.randrange(4, 8), last, target))
         last = target
-    events.append(Event(3, last,pole_top * 1 ))
-    events.append(Event(3, pole_top * 1,pole_top * 0.955 ))
+    events.append(Event(random.randrange(2,4), last,pole_top * 1 ))
+    events.append(Event(random.randrange(1,3), pole_top * 1,pole_top * 0.955 ))
     last = pole_top * 0.955
     if random.random() < 0.75:
         breakout_target = last * (1 + random.uniform(0.08, 0.10))
     else:
         breakout_target = last * (1 - random.uniform(0.04, 0.06))
     
-    events.append(Event(3, last, breakout_target))
+    events.append(Event(random.randrange(12,14), last, breakout_target))
     
         
     return events
@@ -217,10 +217,12 @@ def RECTANGLE(value : float) -> List[Event]:
         events.append(Event(random.randrange(4,8), last,pole_top * 1.04 ))
         events.append(Event(random.randrange(2,4), pole_top * 1.04, pole_top * 1.02 ))
         breakout_target = pole_top * 1.02 * (1 + random.uniform(0.06, 0.08))
+        last = pole_top * 1.02
     else:
         events.append(Event(random.randrange(2,4), last,pole_top * 0.96 ))
         events.append(Event(random.randrange(2,4), pole_top * 0.96,pole_top * 0.98))
         breakout_target = pole_top * 0.98 * (1 - random.uniform(0.06, 0.08))
+        last = pole_top * 0.98
     
     events.append(Event(random.randrange(12, 14), last, breakout_target))
 
