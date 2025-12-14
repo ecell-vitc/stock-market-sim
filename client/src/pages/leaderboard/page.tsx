@@ -18,7 +18,7 @@ const Leaderboard = () => {
   }, [])
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#050617] via-gray-900 to-black text-gray-300">
+    <div className="relative min-h-screen overflow-hidden text-gray-300">
 
       
       <div className="absolute inset-0 bg-[radial-gradient(1px_1px_at_20%_30%,white,transparent)] opacity-40 animate-pulse" />

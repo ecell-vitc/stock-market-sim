@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import type { Transaction } from "../../types"
-import { fetchTransactions } from "./api"
+import { makeRequest } from "../../lib/utils"
 
 const formatCurrency = (v: number) =>
-  v.toLocaleString("en-US", { style: "currency", currency: "USD" })
+  v.toLocaleString("en-IN", { style: "currency", currency: "INR" })
 
 type Filter = "ALL" | "BUY" | "SELL"
 
@@ -16,7 +16,7 @@ const TransactionPage = () => {
   useEffect(() => {
     const run = async () => {
       try {
-        const data = await fetchTransactions()
+        const data = (await makeRequest('user/transactions', 'GET', undefined, true))["transactions"] as Transaction[]
         setRows(data)
       } catch (e) {
         console.error(e)
@@ -62,7 +62,7 @@ const TransactionPage = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#060739] text-white px-10 py-10">
+    <main className="min-h-screen text-white px-10 py-10">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-semibold">Transaction History</h1>
         <div className="relative">
