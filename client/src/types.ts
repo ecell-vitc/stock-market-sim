@@ -15,3 +15,9 @@ export type StockEntry = {
 }
 
 export type StocksResponse = Record<string, Stock & { entries: StockEntry[] }>
+
+export type Transaction = {
+    stock: string      
+    units: number 
+    price: number      
+}

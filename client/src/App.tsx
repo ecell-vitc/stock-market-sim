@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import Stock from './pages/stock/page'
 import Portfolio from './pages/portfolio/page'
 import HomePage from './pages/auth/page'
+import TransactionPage from './pages/transactions/transactions'
 import { useEffect } from 'react'
 import { useAuthStore, useUserStore } from './lib/store'
 import { makeRequest, SERVER_HOST, showMessage } from './lib/utils'
@@ -38,6 +39,7 @@ const App = () => {
 				<RouterProvider router={createBrowserRouter([
 					{ path: "/stocks/", Component: Stock },
 					{ path: "/portfolio/", Component: Portfolio },
+					{ path: "/transactions/", Component: TransactionPage },
 					{ path: "/", Component: HomePage}
 				])} />
 			</main>
