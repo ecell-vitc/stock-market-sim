@@ -1,14 +1,61 @@
+
+
 import { useState, useRef, useEffect } from "react";
 
-const indicators = [
-  "SMA", "EMA", "DEMA", "TEMA", "RMA", "TRIX", "MMAX",
-  "APO", "ARRON", "BOP", "CCI", "MI", "MACD", "PSAR",
-  "QSTICK", "KDJ", "TYP", "VWMA",
-  "VORTEX", "AO", "CMO", "ICHIMOKU", "PPO", "PVO",
-  "ROC", "RSI", "STOCH", "AB", "ATR", "BB", "BBW", "CE",
-  "DC", "KC", "PO", "TR", "UI",
-  "AD", "CMF", "EMV", "FI", "MFI", "NVI", "OBV", "VPT", "VWAP",
-];
+const indicators: Record<string, string> = {
+  SMA: "Simple Moving Average",
+  EMA: "Exponential Moving Average",
+  DEMA: "Double Exponential Moving Average",
+  TEMA: "Triple Exponential Moving Average",
+  RMA: "Running Moving Average",
+  TRIX: "Triple Exponential Oscillator",
+  MMAX: "Moving Maximum",
+
+  APO: "Absolute Price Oscillator",
+  ARRON: "Aroon Indicator",
+  BOP: "Balance of Power",
+  CCI: "Commodity Channel Index",
+  MI: "Mass Index",
+  MACD: "Moving Average Convergence Divergence",
+  PSAR: "Parabolic SAR",
+
+  QSTICK: "QStick Indicator",
+  KDJ: "KDJ Oscillator",
+  TYP: "Typical Price",
+  VWMA: "Volume Weighted Moving Average",
+
+  VORTEX: "Vortex Indicator",
+  AO: "Awesome Oscillator",
+  CMO: "Chande Momentum Oscillator",
+  ICHIMOKU: "Ichimoku Cloud",
+  PPO: "Percentage Price Oscillator",
+  PVO: "Percentage Volume Oscillator",
+
+  ROC: "Rate of Change",
+  RSI: "Relative Strength Index",
+  STOCH: "Stochastic Oscillator",
+  AB: "Acceleration Bands",
+  ATR: "Average True Range",
+  BB: "Bollinger Bands",
+  BBW: "Bollinger Bands Width",
+  CE: "Chandelier Exit",
+
+  DC: "Donchian Channels",
+  KC: "Keltner Channel",
+  PO: "Projection Oscillator",
+  TR: "True Range",
+  UI: "Ulcer Index",
+
+  AD: "Accumulation / Distribution",
+  CMF: "Chaikin Money Flow",
+  EMV: "Ease of Movement",
+  FI: "Force Index",
+  MFI: "Money Flow Index",
+  NVI: "Negative Volume Index",
+  OBV: "On Balance Volume",
+  VPT: "Volume Price Trend",
+  VWAP: "Volume Weighted Average Price",
+};
 
 type Props = {
   onSelect: (indicator: string | null) => void;
@@ -22,15 +69,20 @@ const IndicatorsDropdown = ({ onSelect }: Props) => {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = indicators.filter((i) =>
-    i.toLowerCase().includes(query.toLowerCase())
+  const filtered = Object.entries(indicators).filter(([_, label]) =>
+    label.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
@@ -39,7 +91,7 @@ const IndicatorsDropdown = ({ onSelect }: Props) => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-[#070d2d] border border-[#1e2a6b] rounded-lg px-3 py-2 text-sm text-gray-200"
       >
-        {selected ?? "Select Indicator"}
+        {selected ? indicators[selected] : "Select Indicator"}
       </button>
 
       {isOpen && (
@@ -62,17 +114,17 @@ const IndicatorsDropdown = ({ onSelect }: Props) => {
             None
           </div>
 
-          {filtered.map((i) => (
+          {filtered.map(([key, label]) => (
             <div
-              key={i}
+              key={key}
               onClick={() => {
-                setSelected(i);
-                onSelect(i);
+                setSelected(key);
+                onSelect(key); // internal value unchanged
                 setIsOpen(false);
               }}
               className="px-3 py-2 text-sm hover:bg-[#0b123a] cursor-pointer"
             >
-              {i}
+              {label}
             </div>
           ))}
         </div>
