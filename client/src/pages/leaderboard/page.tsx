@@ -5,7 +5,7 @@ const Leaderboard = () => {
   const [leaderboard, setLeaderboard] = useState<{name: string, value: number}[]>([])
 
   useEffect(() => {
-    makeRequest('leaderboard', 'GET', undefined, true)
+    makeRequest('leaderboard', 'GET')
       .then(data => {
         const list: { name: string, value: number }[] = []
         Object.keys(data).forEach((key) => {
