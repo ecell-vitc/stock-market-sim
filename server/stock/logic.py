@@ -4,6 +4,8 @@ from .models import Stock, StockEntry
 from user.models import User, Holding, Transaction
 from data.cache import Cache
 
+def sumGP(a: float, n: int) -> float:
+    return a * (1 - a**n) / (1 - a)
 
 def buy_stock(
     user: User, stock: Stock, units: int,
@@ -29,26 +31,31 @@ def buy_stock(
 
     
     if units > 0:
-        price = units * per_unit * (1.001 ** units)
+        price = per_unit * sumGP(1.001, units)
         if (user.balance < price):
             return { "valid": False, "message": "Insufficient balance" }
         
-        print("Came here!")
         user.balance -= price
         if holding is None:
-            Holding(
+            holding = Holding(
                 user=user.uid,
                 stock=stock.uid,
                 quantity=units,
-                short_balance=0
-            ).save(session)
+                short_balance=0,
+                avg_price=price/units
+            )
         else:
+            holding.avg_price = (holding.avg_price * holding.quantity + price) / (holding.quantity + units)
             holding.quantity += units
-            holding.save(session)
+        
+        holding.save(session)
 
     user.save(session)
     txn.save(session)
-    return { "valid": True, "message": "Transaction successful!", "balance": user.balance }
+    return { 
+        "valid": True, "message": "Transaction successful!", 
+        "balance": user.balance, "avg_price": holding.avg_price # type: ignore
+    }
 
 
 def sell_stock(
@@ -65,32 +72,37 @@ def sell_stock(
     
     if holding is not None:
         num_units = min(holding.quantity, units)
-
-        price = num_units * per_unit * ((1/1.001) ** num_units)
+        price = per_unit * sumGP(1/1.001, num_units)
 
         user.balance += price
         holding.quantity -= num_units
         units -= num_units
     
     if units > 0:
-        price = units * per_unit * ((1/1.001) ** units)
+        price = per_unit * sumGP(1/1.001, units)
         if (user.balance < price):
             return { "valid": False, "message": "Insufficient balance" }
         
         user.balance -= price
         if holding is None:
-            Holding(
+            holding = Holding(
                 user=user.uid,
                 stock=stock.uid,
                 quantity=-units,
-                short_balance=price
-            ).save(session)
+                short_balance=price,
+                avg_price=price/units
+            )
         else:
+            holding.avg_price = (holding.avg_price * -holding.quantity + price) / (-holding.quantity + units)
             holding.quantity -= units
             holding.short_balance += price
-            holding.save(session)
+            
+        holding.save(session)
 
     user.save(session)
     txn.save(session)
-    return { "valid": True, "message": "Transaction successful!", "balance": user.balance }
+    return { 
+        "valid": True, "message": "Transaction successful!", 
+        "balance": user.balance, "avg_price": holding.avg_price # type: ignore
+    }
         

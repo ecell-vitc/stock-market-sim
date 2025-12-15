@@ -30,3 +30,4 @@ class Holding(BaseModel, table=True):
     user: uuid.UUID = sql.Field(foreign_key='user.uid', ondelete='CASCADE')
     quantity: int
     short_balance: float
+    avg_price: float

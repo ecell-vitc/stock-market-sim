@@ -2,6 +2,7 @@ import Graph from "./graph";
 import Transact from "./transact";
 import PortfolioSummary from "./PortfolioSummary";
 import type { Stock as StockType, StockEntry } from "../../types";
+import { useUserStore } from "../../lib/store";
 
 const Stock = ({
   stocks,
@@ -13,19 +14,22 @@ const Stock = ({
   entries: Record<string, StockEntry[]>;
   curr: string;
   setCurr: (v: string) => void;
-}) => {
+  }) => {
   const data: StockEntry[] = entries[curr] ?? [];
   const last = data.length - 1;
+
+  const owned = useUserStore(state => state.stocks[curr])
 
   const price = last >= 0 ? data[last].close : 0;
   const prevClose = last > 0 ? data[last - 1].close : price;
 
-  const open = data[0]?.open ?? price;
-  const high = data.length ? Math.max(...data.map(d => d.high)) : price;
-  const low = data.length ? Math.min(...data.map(d => d.low)) : price;
-
   const candleChange = price - prevClose;
   const candlePct = prevClose ? (candleChange / prevClose) * 100 : 0;
+
+  const pnl = (
+    owned === undefined ? 0 :
+    (data[last].close - owned.avg_price) * owned.quantity
+  )
 
   return (
     <section className="max-w-[1400px] mx-auto px-6 py-12 space-y-10">
@@ -62,9 +66,11 @@ const Stock = ({
 
         {/* METRICS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
-          <Metric label="Open" value={`₹${open.toFixed(2)}`} />
-          <Metric label="High" value={`₹${high.toFixed(2)}`} />
-          <Metric label="Low" value={`₹${low.toFixed(2)}`} />
+          <Metric label="P&L"
+            value={(pnl < 0 ? "-" : "") + '₹' + Math.abs(pnl).toFixed(2)}
+            positive={ owned.quantity == 0 ? undefined : pnl >= 0 } />
+          <Metric label="High" value={`₹${data[last].high.toFixed(2)}`} />
+          <Metric label="Low" value={`₹${data[last].low.toFixed(2)}`} />
           <Metric
             label="Prev Candle"
             value={`${candleChange >= 0 ? "+" : ""}${candleChange.toFixed(

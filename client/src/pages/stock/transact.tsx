@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { makeRequest, showMessage } from "../../lib/utils";
+import { makeRequest, showMessage, getBuyPrice, getSellPrice } from "../../lib/utils";
 import { useUserStore } from "../../lib/store";
 
 type Props = {
@@ -15,17 +15,10 @@ const Transact = ({ stockId, stockName, price }: Props) => {
   const [isBuy, setIsBuy] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  const owned = userStore.stocks[stockId] || 0;
+  const owned = userStore.stocks[stockId].quantity || 0;
 
-  /* === PRICING LOGIC === */
-  const getBuyPrice = (n: number) =>
-    n * price * Math.pow(1.002, n);
-
-  const getSellPrice = (n: number) =>
-    n * price * Math.pow(0.998, n);
-
-  const buyPrice = getBuyPrice(units);
-  const sellPrice = getSellPrice(units);
+  const buyPrice = getBuyPrice(price, units);
+  const sellPrice = getSellPrice(price, units);
 
   const transact = async () => {
     if (units < 1 || isNaN(units)) {
@@ -53,9 +46,10 @@ const Transact = ({ stockId, stockName, price }: Props) => {
         showMessage(res.message);
         userStore.update(res.balance, {
           ...userStore.stocks,
-          [stockId]:
-            (userStore.stocks[stockId] || 0) +
-            (isBuy ? units : -units),
+          [stockId]: {
+            quantity: (userStore.stocks[stockId].quantity || 0) + (isBuy ? units : -units),
+            avg_price: res.avg_price
+          }
         });
       }
     } catch {

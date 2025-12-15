@@ -20,7 +20,7 @@ const Page = () => {
         setCurr(Object.keys(data.info)[0]);
       });
 
-    const socket = new WebSocket(`wss://${SERVER_HOST}/stocks/`);
+    const socket = new WebSocket(`ws://${SERVER_HOST}/stocks/`);
 
     socket.onmessage = (ev) => {
       const update: Record<string, StockEntry> = JSON.parse(ev.data);

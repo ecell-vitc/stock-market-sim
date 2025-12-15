@@ -52,7 +52,10 @@ def get_info(
     return {
         "balance": user.balance,
         "owned": dict([
-            (holding.stock.hex, holding.quantity) for holding in
+            (holding.stock.hex, {
+                "avg_price": holding.avg_price,
+                "quantity": holding.quantity
+            }) for holding in
             session.exec(
                 sql.select(models.Holding)
                 .where(models.Holding.user == user.uid)

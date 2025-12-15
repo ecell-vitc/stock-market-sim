@@ -34,7 +34,7 @@ const App = () => {
 			
 		}
 
-		const socket = new WebSocket(`wss://${SERVER_HOST}/news/`)
+		const socket = new WebSocket(`ws://${SERVER_HOST}/news/`)
 		socket.onmessage = (ev: MessageEvent) => showMessage(JSON.parse(ev.data).message)
 		socket.onclose = () => { if (socket.readyState === WebSocket.CLOSED) alert("Connection interrupted! Please refresh!") }
 		
