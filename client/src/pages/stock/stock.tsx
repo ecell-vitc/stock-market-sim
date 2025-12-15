@@ -47,7 +47,7 @@ const Stock = ({
 
           <div className="text-right">
             <div className="text-2xl font-bold">
-              ${price.toFixed(2)}
+              ₹{price.toFixed(2)}
             </div>
             <div
               className={`text-sm ${
@@ -62,9 +62,9 @@ const Stock = ({
 
         {/* METRICS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
-          <Metric label="Open" value={`$${open.toFixed(2)}`} />
-          <Metric label="High" value={`$${high.toFixed(2)}`} />
-          <Metric label="Low" value={`$${low.toFixed(2)}`} />
+          <Metric label="Open" value={`₹${open.toFixed(2)}`} />
+          <Metric label="High" value={`₹${high.toFixed(2)}`} />
+          <Metric label="Low" value={`₹${low.toFixed(2)}`} />
           <Metric
             label="Prev Candle"
             value={`${candleChange >= 0 ? "+" : ""}${candleChange.toFixed(

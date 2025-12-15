@@ -45,7 +45,7 @@ const Leaderboard = () => {
                 <tr className="border-b border-gray-700 text-gray-400 text-sm">
                   <th className="p-5 text-left">Rank</th>
                   <th className="p-5 text-left">Trader</th>
-                  <th className="p-5 text-right">Profit (₹)</th>
+                  <th className="p-5 text-right">Valuation (₹)</th>
                 </tr>
               </thead>
 
