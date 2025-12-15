@@ -1,13 +1,25 @@
 import { useEffect } from 'react'
 import { useAuthStore, useUserStore } from './lib/store'
 import { makeRequest, SERVER_HOST, showMessage } from './lib/utils'
-import { NavLink, BrowserRouter, Routes, Route } from 'react-router'
+import { NavLink, BrowserRouter, Routes, Route, useNavigate } from 'react-router'
 
 import Stock from './pages/stock/page'
 // import Portfolio from './pages/portfolio/page'
 import HomePage from './pages/auth/page'
 import TransactionPage from './pages/transactions/page'
 import Leaderboard from './pages/leaderboard/page'
+
+
+const ProtectedRoute = ({ elem }: { elem: React.ReactNode }) => {
+	const logged = useAuthStore(state => state.logged)
+	const nav = useNavigate()
+
+	useEffect(() => { 
+		if (!logged) nav('/')
+	}, [logged, nav])
+	
+	return elem
+}
 
 
 const App = () => {
@@ -38,9 +50,9 @@ const App = () => {
 				<Navbar />
 				<main>
 					<Routes>
-						<Route path="/stocks" element={<Stock />} />
+						<Route path="/stocks" element={<ProtectedRoute elem={<Stock />} />} />
 						{/* <Route path="/portfolio" element={<Portfolio />} /> */}
-						<Route path="/transactions" element={<TransactionPage />} />
+						<Route path="/transactions" element={<ProtectedRoute elem={<TransactionPage />} />} />
 						<Route path="/leaderboard" element={<Leaderboard />} />
 						<Route path="/" element={<HomePage />} />
 					</Routes>

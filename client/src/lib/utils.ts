@@ -6,11 +6,14 @@ export const makeRequest = async(
     data?: Record<string, unknown>,
     includeAuth: boolean = true
 ) => {
+    const token = localStorage.getItem('token')
+    if (includeAuth && !token) return;
+
     const res = await fetch(`https://${SERVER_HOST}/${path}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
-            ...(includeAuth ? { 'Authorization': 'Bearer ' + localStorage.getItem('token') } : {})
+            ...(includeAuth ? { 'Authorization': 'Bearer ' + token } : {})
         },
         ...(data ? { body: JSON.stringify(data) } : {})
     })
