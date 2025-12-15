@@ -1,6 +1,7 @@
 
 
 
+
 // @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 import {
@@ -21,7 +22,10 @@ import {
 import IndicatorsDropdown from "./IndicatorsDropDown";
 import { computeIndicator } from "./indicatorCalculator";
 import SubIndicatorPanel from "./SubIndicatorPanel";
-import { ON_CHART_INDICATORS, BELOW_CHART_INDICATORS } from "../../indicatorTypes";
+import {
+  ON_CHART_INDICATORS,
+  BELOW_CHART_INDICATORS,
+} from "../../indicatorTypes";
 
 type StockEntry = {
   time: UTCTimestamp;
@@ -88,6 +92,7 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
       priceLineRef.current = line.addSeries(AreaSeries, PRICE_STYLE);
       lineChartRef.current = line;
     }
+
     priceLineRef.current?.setData(
       data.map(d => ({ time: d.time, value: d.close }))
     );
@@ -110,7 +115,11 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
     const t = data.map(v => v.time);
 
     const out = computeIndicator(selectedIndicator, {
-      open, high, low, close, volume,
+      open,
+      high,
+      low,
+      close,
+      volume,
     });
 
     const formatted = out
@@ -137,7 +146,7 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
     }
   }, [selectedIndicator, data]);
 
-  /* ---------------- TIME SCALE SYNC (MAIN ↔ SUB) ---------------- */
+  /* --------- BIDIRECTIONAL TIME SCALE SYNC --------- */
   useEffect(() => {
     if (!subPanelData.length) return;
 
@@ -149,16 +158,24 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
 
     if (!mainChart || !subChart) return;
 
-    const handler = (range: LogicalRange | null) => {
+    const syncFromMain = (range: LogicalRange | null) => {
       if (range) {
         subChart.timeScale().setVisibleLogicalRange(range);
       }
     };
 
-    mainChart.timeScale().subscribeVisibleLogicalRangeChange(handler);
+    const syncFromSub = (range: LogicalRange | null) => {
+      if (range) {
+        mainChart.timeScale().setVisibleLogicalRange(range);
+      }
+    };
+
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(syncFromMain);
+    subChart.timeScale().subscribeVisibleLogicalRangeChange(syncFromSub);
 
     return () => {
-      mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(handler);
+      mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(syncFromMain);
+      subChart.timeScale().unsubscribeVisibleLogicalRangeChange(syncFromSub);
     };
   }, [showCandle, subPanelData.length]);
 
@@ -210,7 +227,8 @@ const Graph = ({ data, indicatorData }: GraphProps) => {
   );
 };
 
-/* ---------- SOFT GRID (LOW OPACITY) ---------- */
+/* ---------- CHART STYLES ---------- */
+
 const CHART_MAIN: DeepPartial<ChartOptions> = {
   autoSize: true,
   layout: { background: { color: "#070d2d" }, textColor: "#e5e7eb" },
@@ -240,4 +258,3 @@ const PRICE_STYLE: DeepPartial<AreaSeriesOptions> = {
 };
 
 export default Graph;
-
