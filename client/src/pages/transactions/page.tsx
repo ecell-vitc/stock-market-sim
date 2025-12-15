@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { Transaction } from "../../types"
-import { makeRequest } from "../../lib/utils"
+import { getBuyPrice, getSellPrice, makeRequest } from "../../lib/utils"
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("en-IN", { style: "currency", currency: "INR" })
@@ -40,10 +40,9 @@ const TransactionPage = () => {
   const totals = useMemo(() => {
     let totalBought = 0
     let totalSold = 0
-    filtered.forEach(t => {
-      const value = t.price * Math.abs(t.units)  
-      if (t.units > 0) totalBought += value 
-      else totalSold += value  
+    filtered.forEach(t => {  
+      if (t.units > 0) totalBought += getBuyPrice(t.price, t.units) 
+      else totalSold += getSellPrice(t.price, Math.abs(t.units))
     })
     return {
       count: filtered.length,
@@ -152,8 +151,8 @@ const TransactionPage = () => {
         <div className="divide-y divide-white/5 min-w-max">
           {filtered.map((t, idx) => {
             const quantity = Math.abs(t.units) 
-            const total = t.price * quantity
             const isBuy = t.units > 0  
+            const total = isBuy ? getBuyPrice(t.price, quantity) : getSellPrice(t.price, quantity)
 
             return (
               <div
