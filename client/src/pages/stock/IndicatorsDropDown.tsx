@@ -5,26 +5,14 @@ const indicators: Record<string, string> = {
   EMA: "Exponential Moving Average",
   DEMA: "Double Exponential Moving Average",
   TEMA: "Triple Exponential Moving Average",
-  RMA: "Running Moving Average",
-  MMAX: "Moving Maximum",
 
-  PSAR: "Parabolic SAR",
   TYP: "Typical Price",
   VWMA: "Volume Weighted Moving Average",
-  VWAP: "Volume Weighted Average Price",
 
   TRIX: "Triple Exponential Oscillator",
   APO: "Absolute Price Oscillator",
   BOP: "Balance of Power",
-  CCI: "Commodity Channel Index",
-  MI: "Mass Index",
 
-  QSTICK: "QStick Indicator",
-
-  AO: "Awesome Oscillator",
-  CMO: "Chande Momentum Oscillator",
-  PPO: "Percentage Price Oscillator",
-  PVO: "Percentage Volume Oscillator",
   ROC: "Rate of Change",
   RSI: "Relative Strength Index",
 
@@ -34,8 +22,6 @@ const indicators: Record<string, string> = {
   TR: "True Range",
   UI: "Ulcer Index",
 
-  AD: "Accumulation / Distribution",
-  CMF: "Chaikin Money Flow",
   EMV: "Ease of Movement",
   FI: "Force Index",
   MFI: "Money Flow Index",
@@ -43,6 +29,7 @@ const indicators: Record<string, string> = {
   OBV: "On Balance Volume",
   VPT: "Volume Price Trend",
 };
+
 
 type Props = {
   onSelect: (indicator: string | null) => void;
