@@ -30,6 +30,7 @@ const Page = () => {
         const res = structuredClone(prev);
 
         Object.keys(update).forEach((id) => {
+          if (!res[id]) return;
           const last = res[id].length - 1;
           if (res[id][last].time === update[id].time)
             res[id][last] = update[id];
