@@ -25,8 +25,10 @@ def get_stocks(session: sql.Session = Depends(get_session)):
     rows = session.exec(
         sql.select(models.StockEntry, models.Stock)
            .join(models.Stock)
-           .order_by(models.StockEntry.timestamp)  # type: ignore
+           .order_by(models.StockEntry.timestamp)# type: ignore
     )
+
+    seen = {}
 
     for entry, stock in rows:
         stock_id = entry.stock_id.hex
@@ -37,7 +39,13 @@ def get_stocks(session: sql.Session = Depends(get_session)):
                 'entries': [],
             }
 
+        data = entry.to_dict()
+        if stock_id not in seen: seen[stock_id] = []
+
+        if data['time'] in seen[stock_id]: continue
+
         res[stock_id]['entries'].append(entry.to_dict())
+        seen[stock_id].append(data['time'])
     
     
     if PROVIDER.started.is_set():

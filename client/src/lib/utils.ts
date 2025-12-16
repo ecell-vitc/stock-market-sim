@@ -1,4 +1,4 @@
-export const SERVER_HOST = "sms-server-clz0.onrender.com"
+export const SERVER_HOST = "sms-server-wcc6.onrender.com"
 // export const SERVER_HOST = "localhost:8000"
 
 export const makeRequest = async(
